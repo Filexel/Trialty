@@ -1,0 +1,363 @@
+name: Build Trialty APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Trialty project
+        run: |
+          mkdir -p app/src/main/java/com/trialty/app
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
+          mkdir -p gradle/wrapper
+
+          # AndroidManifest.xml
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.trialty.app">
+              <application
+                  android:label="Trialty"
+                  android:theme="@style/Theme.Trialty"
+                  android:icon="@drawable/ic_launcher">
+                  <activity android:name=".MainActivity">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>' > app/src/main/AndroidManifest.xml
+
+          # MainActivity.java
+          echo 'package com.trialty.app;
+
+          import android.os.Bundle;
+          import android.view.View;
+          import android.widget.*;
+          import androidx.appcompat.app.AppCompatActivity;
+          import androidx.recyclerview.widget.*;
+          import com.google.android.material.button.MaterialButton;
+          import com.google.android.material.progressindicator.CircularProgressIndicator;
+          import com.google.android.material.tabs.TabLayout;
+          import com.google.android.material.textfield.TextInputEditText;
+          import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+          import com.google.android.material.card.MaterialCardView;
+          import java.util.ArrayList;
+
+          public class MainActivity extends AppCompatActivity {
+
+              private TabLayout tabLayout;
+              private FrameLayout contentFrame;
+              private CircularProgressIndicator spinner;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+
+                  tabLayout = findViewById(R.id.tabs);
+                  contentFrame = findViewById(R.id.content);
+                  spinner = findViewById(R.id.spinner);
+
+                  // Показываем спиннер при загрузке
+                  spinner.setVisibility(View.VISIBLE);
+
+                  // Настройка вкладок
+                  tabLayout.addTab(tabLayout.newTab().setText("Главная"));
+                  tabLayout.addTab(tabLayout.newTab().setText("Pull"));
+
+                  // Обработка выбора вкладки
+                  tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+                      @Override public void onTabSelected(TabLayout.Tab tab) {
+                          if (tab.getPosition() == 0) {
+                              showMainTab();
+                          } else {
+                              showPullTab();
+                          }
+                      }
+                      @Override public void onTabUnselected(TabLayout.Tab tab) {}
+                      @Override public void onTabReselected(TabLayout.Tab tab) {}
+                  });
+
+                  // Показываем главную вкладку по умолчанию
+                  showMainTab();
+
+                  // Скрываем спиннер после загрузки
+                  spinner.setVisibility(View.GONE);
+              }
+
+              private void showMainTab() {
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setPadding(16, 16, 16, 16);
+
+                  // Заголовок
+                  TextView title = new TextView(this);
+                  title.setText("Мои проекты");
+                  title.setTextSize(22);
+                  title.setTextColor(getColor(android.R.color.white));
+                  title.setTypeface(null, android.graphics.Typeface.BOLD);
+                  layout.addView(title);
+
+                  // Список проектов (пример)
+                  String[] projects = {"Нейросеть 1", "Нейросеть 2", "Нейросеть 3"};
+                  for (String project : projects) {
+                      MaterialCardView card = new MaterialCardView(this);
+                      card.setCardElevation(4);
+                      card.setRadius(12);
+                      card.setUseCompatPadding(true);
+                      card.setLayoutParams(new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT,
+                          LinearLayout.LayoutParams.WRAP_CONTENT
+                      ));
+                      ((LinearLayout.LayoutParams) card.getLayoutParams()).setMargins(0, 8, 0, 8);
+
+                      TextView tv = new TextView(this);
+                      tv.setText(project);
+                      tv.setTextSize(16);
+                      tv.setTextColor(getColor(android.R.color.white));
+                      tv.setPadding(16, 16, 16, 16);
+                      card.addView(tv);
+                      layout.addView(card);
+                  }
+
+                  // Кнопка "Создать проект"
+                  MaterialButton createBtn = new MaterialButton(this);
+                  createBtn.setText("➕ Создать проект");
+                  createBtn.setLayoutParams(new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT,
+                      LinearLayout.LayoutParams.WRAP_CONTENT
+                  ));
+                  ((LinearLayout.LayoutParams) createBtn.getLayoutParams()).setMargins(0, 24, 0, 0);
+                  createBtn.setOnClickListener(v -> showCreateProjectDialog());
+                  layout.addView(createBtn);
+
+                  contentFrame.removeAllViews();
+                  contentFrame.addView(layout);
+              }
+
+              private void showPullTab() {
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setPadding(16, 16, 16, 16);
+
+                  TextView title = new TextView(this);
+                  title.setText("Pull нейросеть");
+                  title.setTextSize(22);
+                  title.setTextColor(getColor(android.R.color.white));
+                  title.setTypeface(null, android.graphics.Typeface.BOLD);
+                  layout.addView(title);
+
+                  TextInputEditText input = new TextInputEditText(this);
+                  input.setHint("Название нейросети");
+                  input.setLayoutParams(new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT,
+                      LinearLayout.LayoutParams.WRAP_CONTENT
+                  ));
+                  ((LinearLayout.LayoutParams) input.getLayoutParams()).setMargins(0, 16, 0, 16);
+                  layout.addView(input);
+
+                  MaterialButton pullBtn = new MaterialButton(this);
+                  pullBtn.setText("⬇️ Pull");
+                  pullBtn.setLayoutParams(new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT,
+                      LinearLayout.LayoutParams.WRAP_CONTENT
+                  ));
+                  pullBtn.setOnClickListener(v -> {
+                      String model = input.getText().toString();
+                      if (!model.isEmpty()) {
+                          showPullDialog(model);
+                      }
+                  });
+                  layout.addView(pullBtn);
+
+                  contentFrame.removeAllViews();
+                  contentFrame.addView(layout);
+              }
+
+              private void showCreateProjectDialog() {
+                  MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this);
+                  builder.setTitle("Создать проект");
+
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setPadding(16, 16, 16, 16);
+
+                  TextInputEditText nameInput = new TextInputEditText(this);
+                  nameInput.setHint("Название проекта");
+                  layout.addView(nameInput);
+
+                  TextInputEditText promptInput = new TextInputEditText(this);
+                  promptInput.setHint("Системный prompt (опционально)");
+                  layout.addView(promptInput);
+
+                  builder.setView(layout);
+                  builder.setPositiveButton("Создать", (dialog, which) -> {
+                      String name = nameInput.getText().toString();
+                      if (!name.isEmpty()) {
+                          // Переход в чат
+                      }
+                  });
+                  builder.setNegativeButton("Отмена", null);
+                  builder.show();
+              }
+
+              private void showPullDialog(String model) {
+                  MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this);
+                  builder.setTitle("Загрузка " + model);
+
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setPadding(16, 32, 16, 32);
+
+                  CircularProgressIndicator progress = new CircularProgressIndicator(this);
+                  progress.setIndeterminate(true);
+                  progress.setLayoutParams(new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.WRAP_CONTENT,
+                      LinearLayout.LayoutParams.WRAP_CONTENT
+                  ));
+                  ((LinearLayout.LayoutParams) progress.getLayoutParams()).gravity = Gravity.CENTER_HORIZONTAL;
+                  layout.addView(progress);
+
+                  TextView status = new TextView(this);
+                  status.setText("Загрузка " + model + "...");
+                  status.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                  status.setTextColor(getColor(android.R.color.white));
+                  layout.addView(status);
+
+                  builder.setView(layout);
+                  builder.setPositiveButton("OK", null);
+                  builder.show();
+              }
+          }' > app/src/main/java/com/trialty/app/MainActivity.java
+
+          # activity_main.xml
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:background="?attr/colorSurface">
+
+              <com.google.android.material.tabs.TabLayout
+                  android:id="@+id/tabs"
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  app:tabTextColor="?attr/colorOnSurface"
+                  app:tabSelectedTextColor="?attr/colorPrimary"
+                  app:tabIndicatorColor="?attr/colorPrimary"
+                  app:tabBackground="?attr/colorSurface"/>
+
+              <com.google.android.material.progressindicator.CircularProgressIndicator
+                  android:id="@+id/spinner"
+                  android:layout_width="48dp"
+                  android:layout_height="48dp"
+                  android:layout_gravity="center"
+                  android:layout_marginTop="32dp"
+                  android:visibility="gone"
+                  app:indicatorColor="?attr/colorPrimary"/>
+
+              <FrameLayout
+                  android:id="@+id/content"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"/>
+
+          </LinearLayout>' > app/src/main/res/layout/activity_main.xml
+
+          # themes.xml
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.Trialty" parent="Theme.Material3.DayNight.NoActionBar">
+                  <item name="colorPrimary">#D0BCFF</item>
+                  <item name="colorOnPrimary">#381E72</item>
+                  <item name="colorSurface">#1C1B1F</item>
+                  <item name="colorOnSurface">#E3E1E3</item>
+                  <item name="colorSurfaceVariant">#444746</item>
+                  <item name="colorOnSurfaceVariant">#C4C7C5</item>
+              </style>
+          </resources>' > app/src/main/res/values/themes.xml
+
+          # colors.xml
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="white">#FFFFFF</color>
+              <color name="black">#000000</color>
+          </resources>' > app/src/main/res/values/colors.xml
+
+          # build.gradle (app)
+          echo 'apply plugin: "com.android.application"
+          android {
+              namespace "com.trialty.app"
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.trialty.app"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+          }
+          dependencies {
+              implementation "androidx.appcompat:appcompat:1.7.0"
+              implementation "com.google.android.material:material:1.12.0"
+              implementation "androidx.recyclerview:recyclerview:1.3.2"
+          }' > app/build.gradle
+
+          # build.gradle (root)
+          echo 'plugins {
+              id "com.android.application" version "8.2.0" apply false
+          }' > build.gradle
+
+          # settings.gradle
+          echo 'pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "Trialty"
+          include ":app"' > settings.gradle
+
+          # gradle-wrapper.properties
+          echo 'distributionUrl=https://services.gradle.org/distributions/gradle-8.2-bin.zip' > gradle/wrapper/gradle-wrapper.properties
+
+          # gradlew
+          echo '#!/bin/sh
+          exec java -cp "$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"' > gradlew
+          chmod +x gradlew
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Install SDK
+        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Build APK
+        run: ./gradlew assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trialty-APK
+          path: app/build/outputs/apk/release/*.apk
